@@ -1,0 +1,12 @@
+.env
+.env.local
+.env.*.local
+node_modules/
+.DS_Store
+Thumbs.db
+.vscode/
+coverage/
+dist/
+# Local copy of notification trigger SQL containing a real webhook secret.
+supabase/notification-webhooks.local.sql
+supabase/.temp/

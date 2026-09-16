@@ -1,0 +1,3 @@
+# The webhook carries its own x-cabsy-webhook-secret, so JWT verification is disabled.
+# Never make this endpoint public without setting and verifying WEBHOOK_SECRET.
+verify_jwt = false
