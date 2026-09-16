@@ -16,7 +16,7 @@ set search_path = public, net
 as $$
 declare
   endpoint text := 'https://atqjamabdcsuvsutdkdv.supabase.co/functions/v1/notify-admin';
-  webhook_secret text := '0064fc4e2c222368e37a633d730d0ec24648ce09dc36053a3b563e4d39b58ed9';
+  webhook_secret text := 'YOUR_WEBHOOK_SECRET';
   payload jsonb;
   request_id bigint;
 begin
