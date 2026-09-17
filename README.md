@@ -8,7 +8,8 @@ CABSY is a static, modular cab-booking frontend backed by Supabase Auth and Post
 - Supabase email/password sign-up, login, logout, verification guidance, session persistence, password reset, and protected pages
 - Customer-owned profiles and bookings enforced with Row Level Security
 - Database-generated customer booking references such as `CAB-8F3K92AB`
-- Server-side vehicle fare and capacity validation for the configured fleet
+- openrouteservice location search and driving-route estimates with an interactive Leaflet/OpenStreetMap map
+- Server-verified distance fares and capacity validation: Sedan ₹14/km, SUV ₹18/km, Premium ₹25/km
 - Booking history, filters, details, and pending-only cancellation
 - Private contact messages and driver applications
 - RLS-protected operations dashboard for explicitly assigned CABSY admins
@@ -142,6 +143,43 @@ A pending → cancelled booking change also sends a cancellation email to both t
 
 Database webhooks transmit booking/customer data to the configured Edge Function and Resend. Use a business-controlled admin inbox and follow your finalized privacy policy.
 
+## OpenStreetMap, Leaflet, and verified route pricing
+
+The booking form loads Leaflet only on `index.html`. Location searches are debounced and run through the authenticated `search-locations` Edge Function, which keeps the openrouteservice key server-side. The openrouteservice public Pelias geocoder is served separately at `https://api.openrouteservice.org/geocode/autocomplete`; customers must choose a result before route calculation begins.
+
+`calculate-route` calls the current openrouteservice HEIGIT Directions endpoint (`https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson`) to return actual driving distance, duration, and GeoJSON route geometry. Leaflet displays that geometry using normal interactive OpenStreetMap tiles with visible OpenStreetMap attribution. No tiles are bulk-downloaded, prefetched, or used offline.
+
+`create-route-booking` calls the same driving route endpoint again at submission, applies the backend fare rate, and writes the route/fare snapshot. Browser-supplied distance, rate, and fare are never trusted.
+
+### openrouteservice setup and Edge Function deployment
+
+1. Create a free account and API key at [openrouteservice](https://openrouteservice.org/dev/#/signup). Keep the key private.
+2. Run `supabase/maps-pricing-migration.sql` in Supabase SQL Editor after `schema.sql`. It adds coordinates, driving distance, duration, and per-km rate snapshots, removes direct customer booking inserts, and preserves historical fares in `bookings.fare`.
+3. Deploy the three functions:
+
+```bash
+supabase functions deploy search-locations --no-verify-jwt
+supabase functions deploy calculate-route --no-verify-jwt
+supabase functions deploy create-route-booking --no-verify-jwt
+```
+
+4. Set server-only function secrets:
+
+```bash
+supabase secrets set OPENROUTESERVICE_API_KEY=YOUR_OPENROUTESERVICE_API_KEY
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SUPABASE_SERVICE_ROLE_KEY
+```
+
+`SUPABASE_URL` and `SUPABASE_ANON_KEY` are normally supplied to Edge Functions by Supabase. If they are unavailable in your project, set them as function secrets too. Never put `SUPABASE_SERVICE_ROLE_KEY` or `OPENROUTESERVICE_API_KEY` in `js/config.js`, `.env` deployed to static hosting, or a public repository.
+
+### Route-pricing test flow
+
+1. Sign in, open the homepage, and select pickup and drop entries from the openrouteservice search results.
+2. Confirm the route summary and Leaflet map show the openrouteservice road route, distance, and duration.
+3. Switch Sedan/SUV/Premium and confirm the fare changes without another route request.
+4. Submit the booking and verify `bookings` stores selected addresses/coordinates, distance/duration, `rate_per_km`, and `fare`.
+5. Confirm the booking details page shows the saved verified route snapshot. A direct browser insert into `bookings` should be rejected by RLS.
+
 ## Deployment
 
 The application can deploy directly to Netlify, Vercel, or GitHub Pages as a static site. Configure the host to serve `index.html` as the root page and include `404.html` where supported. Update Supabase Auth’s Site URL and redirect allow-list after deployment.
@@ -151,14 +189,15 @@ GitHub Pages is suitable for the static frontend but cannot safely host secrets 
 ## Security notes
 
 - RLS is mandatory: run the provided schema in full.
-- The bookings table derives `user_id` from `auth.uid()` and rejects manipulated fares/capacities.
+- New bookings are created only by `create-route-booking`. It re-authenticates the caller, recalculates the openrouteservice driving distance, applies the backend rate, and stores the resulting historical fare snapshot.
+- The bookings table blocks direct customer inserts; the cancellation trigger only permits an authenticated customer to cancel their own pending booking.
 - The cancellation trigger only permits an authenticated customer to change their own pending booking to `cancelled`.
 - Contact and driver inserts are intentionally public, but read access is not. Add CAPTCHA/rate limiting through an Edge Function or anti-abuse provider before a high-traffic launch.
 - Do not treat WhatsApp opening as booking confirmation.
 
 ## Known limitations and recommended next steps
 
-- Fare values are fixed estimates, not distance-based final prices.
-- The site intentionally has no staff/admin interface. Build one with Supabase roles/claims or server-side authorization.
-- Replace business placeholders, destination content, and visual assets with verified operational information.
-- Add real maps/geocoding, operational confirmation workflow, notifications, payments, secure abuse prevention, and legal review before operating commercially.
+- An openrouteservice API key and the three route/location Edge Functions must be configured before route booking can be used.
+- Configure production SMTP in Supabase before launch; the default authentication email rate limit is too low for production traffic.
+- Replace remaining business placeholders, destination content, and visual assets with verified operational information.
+- Add payments, secure abuse prevention, and legal review before operating commercially.

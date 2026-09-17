@@ -56,6 +56,8 @@ create table public.driver_applications (
   vehicle_type text not null,
   vehicle_registration text not null,
   license_number text not null,
+  aadhaar_last_four char(4) check (aadhaar_last_four is null or aadhaar_last_four ~ '^[0-9]{4}$'),
+  aadhaar_confirmed boolean not null default false,
   message text,
   status text not null default 'pending' check (status in ('pending','reviewing','approved','rejected')),
   created_at timestamptz not null default now()

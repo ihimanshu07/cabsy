@@ -1,0 +1,2 @@
+# Authentication is verified inside the function against Supabase Auth.
+verify_jwt = false

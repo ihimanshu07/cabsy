@@ -17,13 +17,6 @@ document.querySelectorAll('[data-vehicle-select]').forEach(button => {
   });
 });
 
-vehicleSelect?.addEventListener('change', event => {
-  const vehicle = VEHICLES[event.target.value];
-  if (!farePreview) return;
-  farePreview.innerHTML = vehicle
-    ? `<span>✦</span> ${formatINR(vehicle.fare)} estimated fare`
-    : '<span>✦</span> Choose a vehicle to view fare';
-});
 
 document.querySelectorAll('[data-book-link]').forEach(link => {
   link.addEventListener('click', async event => {
