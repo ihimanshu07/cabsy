@@ -1,11 +1,22 @@
 import { supabase, configured } from './supabase.js';
+import { SITE_URL } from './config.js';
 import { emailValid, phoneValid, fieldError, clearErrors } from './validation.js';
 import { initUI, setButtonLoading } from './ui.js';
 
 await initUI();
 const message = document.querySelector('#auth-message');
 const say = (text, type = 'info') => { message.textContent = text; message.className = `auth-message show ${type}`; };
-const returnTo = new URLSearchParams(location.search).get('returnTo') || 'index.html#book';
+const safeReturnTo = value => {
+  const candidate = String(value ?? '');
+  return /^[A-Za-z0-9][A-Za-z0-9._-]*(?:[?#].*)?$/.test(candidate) ? candidate : 'index.html#book';
+};
+const returnTo = safeReturnTo(new URLSearchParams(location.search).get('returnTo'));
+const query = new URLSearchParams(location.search);
+const hashQuery = new URLSearchParams(location.hash.replace(/^#/, ''));
+const isOAuthCallback = query.has('code') || location.hash.includes('access_token') || hashQuery.has('error');
+const oauthBaseUrl = ['localhost', '127.0.0.1'].includes(location.hostname) ? location.origin : SITE_URL;
+const oauthRedirectUrl = new URL('auth.html', oauthBaseUrl);
+oauthRedirectUrl.searchParams.set('returnTo', returnTo);
 
 const friendly = error => {
   const detail = `${error?.message ?? ''} ${error?.code ?? ''}`.toLowerCase();
@@ -33,6 +44,25 @@ async function safely(action) {
   try { return await action(); } catch (error) { return { error }; }
 }
 
+function setGoogleLoading(loading) {
+  document.querySelectorAll('[data-google-oauth]').forEach(button => setButtonLoading(button, loading, 'Opening Google...'));
+}
+
+async function finishOAuthCallback() {
+  const providerError = query.get('error') || query.get('error_description') || hashQuery.get('error') || hashQuery.get('error_description');
+  if (providerError) {
+    say('Google sign-in was cancelled or could not be completed. Please try again.', 'error');
+    return;
+  }
+  if (!isOAuthCallback || !configured) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) {
+    location.replace(returnTo);
+    return;
+  }
+  say('Google sign-in did not complete. Please try again.', 'error');
+}
+
 document.querySelectorAll('.auth-tab').forEach(button => button.addEventListener('click', () => showPanel(button.dataset.panel)));
 if (location.hash === '#signup') showPanel('signup');
 document.querySelectorAll('[data-password-toggle]').forEach(button => button.addEventListener('click', () => {
@@ -46,6 +76,21 @@ document.querySelector('#signup-password')?.addEventListener('input', event => {
   meter.style.width = `${score * 20}%`;
   meter.style.background = score >= 4 ? 'var(--success)' : score >= 3 ? 'var(--warning)' : 'var(--error)';
 });
+
+document.querySelectorAll('[data-google-oauth]').forEach(button => button.addEventListener('click', async () => {
+  if (!await ensure()) return;
+  setGoogleLoading(true);
+  const { error } = await safely(() => supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: oauthRedirectUrl.href }
+  }));
+  if (error) {
+    setGoogleLoading(false);
+    say('Unable to start Google sign-in. Please try again.', 'error');
+  }
+}));
+
+await finishOAuthCallback();
 
 document.querySelector('#signup-form')?.addEventListener('submit', async event => {
   event.preventDefault();

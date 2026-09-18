@@ -5,7 +5,7 @@ CABSY is a static, modular cab-booking frontend backed by Supabase Auth and Post
 ## Features
 
 - Responsive public website, booking widget, fares, services, destination ideas, legal pages, and contact page
-- Supabase email/password sign-up, login, logout, verification guidance, session persistence, password reset, and protected pages
+- Supabase email/password and Google OAuth sign-up/login, logout, verification guidance, session persistence, password reset, and protected pages
 - Customer-owned profiles and bookings enforced with Row Level Security
 - Database-generated customer booking references such as `CAB-8F3K92AB`
 - openrouteservice location search and driving-route estimates with an interactive Leaflet/OpenStreetMap map
@@ -50,6 +50,36 @@ With Supabase email confirmation enabled, sign-up shows verification guidance an
 The client uses Supabase’s supported persisted session behavior (`persistSession`, token refresh, and URL detection). It does not implement its own browser authentication storage.
 
 For production sign-ups, configure **custom SMTP** in Supabase Authentication. Supabase's default email service has a strict low email-send rate limit, which can return HTTP `429` during repeated signup or password-reset testing. CABSY now reports this specifically to the user, but custom SMTP is the required production fix.
+
+### Google OAuth setup
+
+Google OAuth is implemented through Supabase Auth; no Google OAuth client secret is placed in this repository or browser code. The existing `handle_new_user` database trigger creates a normal CABSY profile for all new Auth users, including Google users. It does not create a `user_roles` record, so Google users are not administrators by default.
+
+1. In **Google Cloud Console → APIs & Services → Credentials**, create an **OAuth client ID** of type **Web application**. Configure the OAuth consent screen and add your CABSY support email as required by Google.
+2. In that OAuth client, add this exact **Authorized redirect URI** (this is the Supabase Auth callback, not the CABSY page):
+
+   ```text
+   https://atqjamabdcsuvsutdkdv.supabase.co/auth/v1/callback
+   ```
+
+3. In **Supabase Dashboard → Authentication → Providers → Google**, enable Google and enter the Google OAuth **Client ID** and **Client Secret**. Save them in Supabase Dashboard only.
+4. In **Supabase Dashboard → Authentication → URL Configuration**, set Site URL to:
+
+   ```text
+   https://cabsyindia.com
+   ```
+
+   Add these Redirect URLs:
+
+   ```text
+   https://cabsyindia.com/auth.html
+   https://www.cabsyindia.com/auth.html
+   http://localhost:3000/auth.html
+   ```
+
+5. Run `supabase/google-oauth-profile-migration.sql` once in Supabase SQL Editor before testing a first Google user. It hardens the existing profile trigger for OAuth metadata and does not modify roles, RLS, or historical users.
+
+The browser sends Google OAuth back to `https://cabsyindia.com/auth.html` and then returns the user to the original CABSY page, such as `index.html#book`.
 
 ## Run locally
 

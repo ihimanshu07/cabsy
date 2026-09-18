@@ -66,9 +66,18 @@ create index driver_applications_status_idx on public.driver_applications(status
 
 create or replace function public.handle_new_user()
 returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  candidate_name text;
 begin
+  candidate_name := coalesce(
+    nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''),
+    nullif(trim(new.raw_user_meta_data ->> 'name'), ''),
+    nullif(trim(split_part(new.email, '@', 1)), ''),
+    'CABSY Customer'
+  );
   insert into public.profiles (id, full_name, phone, email)
-  values (new.id, coalesce(nullif(trim(new.raw_user_meta_data ->> 'full_name'), ''), split_part(new.email, '@', 1)), nullif(trim(new.raw_user_meta_data ->> 'phone'), ''), new.email);
+  values (new.id, case when char_length(candidate_name) >= 2 then candidate_name else 'CABSY Customer' end, nullif(trim(new.raw_user_meta_data ->> 'phone'), ''), new.email)
+  on conflict (id) do nothing;
   return new;
 end;
 $$;

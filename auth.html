@@ -1,1 +1,47 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Account Access | CABSY</title><meta name="description" content="Create or access your CABSY account."><link rel="stylesheet" href="css/style.css"><link rel="stylesheet" href="css/auth.css"></head><body><header class="site-header"><nav class="nav container" aria-label="Main navigation"><a class="logo" href="index.html">CAB<span>SY</span></a><a class="button button-outline" href="index.html">Back to home</a></nav></header><main class="auth-main"><section class="auth-card" aria-labelledby="auth-title"><h1 id="auth-title">Welcome to CABSY</h1><p class="auth-note">Sign in to manage your booking requests or create a secure account.</p><div id="auth-message" class="auth-message" role="status"></div><div class="auth-tabs" role="tablist"><button class="auth-tab active" data-panel="login" role="tab">Login</button><button class="auth-tab" data-panel="signup" role="tab">Create account</button></div><form id="login-form" class="auth-form"><div class="field"><label for="login-email">Email address</label><input id="login-email" name="email" type="email" autocomplete="email" required><span class="field-error" data-error-for="email"></span></div><div class="field"><label for="login-password">Password</label><div class="password-wrap"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button class="password-toggle" data-password-toggle="login-password" type="button">Show</button></div><span class="field-error" data-error-for="password"></span></div><button class="button" type="submit">Login</button><button class="auth-link" type="button" onclick="document.getElementById('forgot-form').hidden=!document.getElementById('forgot-form').hidden">Forgot password?</button></form><form id="forgot-form" class="auth-form forgot-panel" hidden><div class="field"><label for="forgot-email">Email address</label><input id="forgot-email" name="email" type="email" autocomplete="email"></div><button class="button button-outline" type="submit">Send reset link</button></form><form id="signup-form" class="auth-form" hidden><div class="field"><label for="signup-name">Full name</label><input id="signup-name" name="full_name" autocomplete="name" required><span class="field-error" data-error-for="full_name"></span></div><div class="field"><label for="signup-email">Email address</label><input id="signup-email" name="email" type="email" autocomplete="email" required><span class="field-error" data-error-for="email"></span></div><div class="field"><label for="signup-phone">Phone number</label><input id="signup-phone" name="phone" inputmode="tel" autocomplete="tel" required placeholder="10-digit mobile number"><span class="field-error" data-error-for="phone"></span></div><div class="field"><label for="signup-password">Password</label><div class="password-wrap"><input id="signup-password" name="password" type="password" autocomplete="new-password" required><button class="password-toggle" data-password-toggle="signup-password" type="button">Show</button></div><div class="strength" aria-label="Password strength"><span></span></div><span class="field-error" data-error-for="password"></span></div><div class="field"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" required><span class="field-error" data-error-for="confirm_password"></span></div><button class="button" type="submit">Create account</button><p class="auth-note">You may need to verify your email before signing in, depending on your Supabase Auth settings.</p></form><form id="reset-form" class="auth-form" hidden><div class="field"><label for="reset-password">New password</label><input id="reset-password" name="password" type="password" autocomplete="new-password" required></div><button class="button" type="submit">Update password</button></form></section></main><div class="toast-region" aria-live="polite"></div><script type="module" src="js/auth.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Account Access | CABSY</title>
+  <meta name="description" content="Create or access your CABSY account.">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+  <header class="site-header"><nav class="nav container" aria-label="Main navigation"><a class="logo" href="index.html">CAB<span>SY</span></a><a class="button button-outline" href="index.html">Back to home</a></nav></header>
+  <main class="auth-main"><section class="auth-card" aria-labelledby="auth-title">
+    <h1 id="auth-title">Welcome to CABSY</h1>
+    <p class="auth-note">Sign in to manage your booking requests or create a secure account.</p>
+    <div id="auth-message" class="auth-message" role="status"></div>
+    <div class="auth-tabs" role="tablist"><button class="auth-tab active" data-panel="login" role="tab">Login</button><button class="auth-tab" data-panel="signup" role="tab">Create account</button></div>
+
+    <form id="login-form" class="auth-form">
+      <button class="button google-button" type="button" data-google-oauth><span class="google-mark" aria-hidden="true">G</span> Continue with Google</button>
+      <div class="auth-divider" role="separator"><span>or continue with email</span></div>
+      <div class="field"><label for="login-email">Email address</label><input id="login-email" name="email" type="email" autocomplete="email" required><span class="field-error" data-error-for="email"></span></div>
+      <div class="field"><label for="login-password">Password</label><div class="password-wrap"><input id="login-password" name="password" type="password" autocomplete="current-password" required><button class="password-toggle" data-password-toggle="login-password" type="button">Show</button></div><span class="field-error" data-error-for="password"></span></div>
+      <button class="button" type="submit">Login</button>
+      <button class="auth-link" type="button" onclick="document.getElementById('forgot-form').hidden=!document.getElementById('forgot-form').hidden">Forgot password?</button>
+    </form>
+
+    <form id="forgot-form" class="auth-form forgot-panel" hidden><div class="field"><label for="forgot-email">Email address</label><input id="forgot-email" name="email" type="email" autocomplete="email"></div><button class="button button-outline" type="submit">Send reset link</button></form>
+
+    <form id="signup-form" class="auth-form" hidden>
+      <button class="button google-button" type="button" data-google-oauth><span class="google-mark" aria-hidden="true">G</span> Continue with Google</button>
+      <div class="auth-divider" role="separator"><span>or create an account with email</span></div>
+      <div class="field"><label for="signup-name">Full name</label><input id="signup-name" name="full_name" autocomplete="name" required><span class="field-error" data-error-for="full_name"></span></div>
+      <div class="field"><label for="signup-email">Email address</label><input id="signup-email" name="email" type="email" autocomplete="email" required><span class="field-error" data-error-for="email"></span></div>
+      <div class="field"><label for="signup-phone">Phone number</label><input id="signup-phone" name="phone" inputmode="tel" autocomplete="tel" required placeholder="10-digit mobile number"><span class="field-error" data-error-for="phone"></span></div>
+      <div class="field"><label for="signup-password">Password</label><div class="password-wrap"><input id="signup-password" name="password" type="password" autocomplete="new-password" required><button class="password-toggle" data-password-toggle="signup-password" type="button">Show</button></div><div class="strength" aria-label="Password strength"><span></span></div><span class="field-error" data-error-for="password"></span></div>
+      <div class="field"><label for="confirm-password">Confirm password</label><input id="confirm-password" name="confirm_password" type="password" autocomplete="new-password" required><span class="field-error" data-error-for="confirm_password"></span></div>
+      <button class="button" type="submit">Create account</button>
+      <p class="auth-note">You may need to verify your email before signing in, depending on your Supabase Auth settings.</p>
+    </form>
+
+    <form id="reset-form" class="auth-form" hidden><div class="field"><label for="reset-password">New password</label><input id="reset-password" name="password" type="password" autocomplete="new-password" required></div><button class="button" type="submit">Update password</button></form>
+  </section></main>
+  <div class="toast-region" aria-live="polite"></div>
+  <script type="module" src="js/auth.js"></script>
+</body>
+</html>
