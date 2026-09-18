@@ -1,6 +1,9 @@
 import { supabase } from './supabase.js';
 
 const OSM_TILE_URL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const SEARCH_DELAY_MS = 650;
+const SEARCH_CACHE_MS = 10 * 60 * 1000;
+const searchCache = new Map();
 let leafletLoader;
 
 const loadLeaflet = () => {
@@ -16,7 +19,7 @@ const loadLeaflet = () => {
     }
     const script = document.createElement('script');
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.integrity = 'sha512-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBoqzM2InlXeY2a4fJk5dGqJj9rwZq3m5rNo7rN+qM9Q==' ;
+    script.integrity = 'sha512-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBoqzM2InlXeY2a4fJk5dGqJj9rwZq3m5rNo7rN+qM9Q==';
     script.crossOrigin = 'anonymous';
     script.async = true;
     script.onload = () => resolve(window.L);
@@ -27,6 +30,12 @@ const loadLeaflet = () => {
 };
 
 const durationLabel = seconds => seconds >= 3600 ? `${Math.floor(seconds / 3600)} hr ${Math.round((seconds % 3600) / 60)} min` : `${Math.max(1, Math.round(seconds / 60))} min`;
+const normalizedQuery = value => value.trim().replace(/\s+/g, ' ').toLowerCase();
+const searchMessage = (data, error) => {
+  if (data?.code === 'rate_limited') return 'Location search is busy. Please wait a few seconds and try again.';
+  if (error?.context?.status === 401 || data?.code === 'unauthorized') return 'Please sign in again before searching locations.';
+  return 'Unable to search locations. Please check your connection and try again.';
+};
 
 export async function initOrsBooking({ onRoute, onError, onPending }) {
   const pickupInput = document.querySelector('#pickup');
@@ -83,30 +92,47 @@ export async function initOrsBooking({ onRoute, onError, onPending }) {
     await requestRoute();
   };
 
+  const searchLocations = async query => {
+    const cached = searchCache.get(query);
+    if (cached && Date.now() - cached.createdAt < SEARCH_CACHE_MS) return cached.locations;
+    const { data, error } = await supabase.functions.invoke('search-locations', { body: { query } });
+    if (error || data?.error) throw { data, error };
+    const locations = data.locations ?? [];
+    searchCache.set(query, { locations, createdAt: Date.now() });
+    return locations;
+  };
+
   const setupSearch = (input, key) => {
     let timer;
+    let requestVersion = 0;
     input.addEventListener('input', () => {
       if (state[key]) { state[key] = null; invalidate(); }
-      const query = input.value.trim();
+      const typedValue = input.value.trim();
+      const query = normalizedQuery(typedValue);
+      const version = ++requestVersion;
       resultBoxes[key].replaceChildren();
       clearTimeout(timer);
       if (query.length < 3) return;
       timer = setTimeout(async () => {
         resultBoxes[key].innerHTML = '<span class="location-search-status">Searching locations...</span>';
-        const { data, error } = await supabase.functions.invoke('search-locations', { body: { query } });
-        if (input.value.trim() !== query) return;
-        resultBoxes[key].replaceChildren();
-        if (error || data?.error) { resultBoxes[key].innerHTML = '<span class="location-search-status is-error">Unable to search locations. Please try again.</span>'; return; }
-        if (!data.locations?.length) { resultBoxes[key].innerHTML = '<span class="location-search-status">No locations found.</span>'; return; }
-        data.locations.forEach(location => {
-          const button = document.createElement('button');
-          button.type = 'button';
-          button.className = 'location-result';
-          button.textContent = location.address;
-          button.addEventListener('click', () => selectLocation(key, location));
-          resultBoxes[key].append(button);
-        });
-      }, 350);
+        try {
+          const locations = await searchLocations(query);
+          if (version !== requestVersion || normalizedQuery(input.value) !== query) return;
+          resultBoxes[key].replaceChildren();
+          if (!locations.length) { resultBoxes[key].innerHTML = '<span class="location-search-status">No locations found. Try a more specific search.</span>'; return; }
+          locations.forEach(location => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'location-result';
+            button.textContent = location.address;
+            button.addEventListener('click', () => selectLocation(key, location));
+            resultBoxes[key].append(button);
+          });
+        } catch ({ data, error }) {
+          if (version !== requestVersion || normalizedQuery(input.value) !== query) return;
+          resultBoxes[key].innerHTML = `<span class="location-search-status is-error">${searchMessage(data, error)}</span>`;
+        }
+      }, SEARCH_DELAY_MS);
     });
   };
 

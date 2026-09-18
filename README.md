@@ -49,6 +49,8 @@ With Supabase email confirmation enabled, sign-up shows verification guidance an
 
 The client uses Supabase’s supported persisted session behavior (`persistSession`, token refresh, and URL detection). It does not implement its own browser authentication storage.
 
+For production sign-ups, configure **custom SMTP** in Supabase Authentication. Supabase's default email service has a strict low email-send rate limit, which can return HTTP `429` during repeated signup or password-reset testing. CABSY now reports this specifically to the user, but custom SMTP is the required production fix.
+
 ## Run locally
 
 This is a static site. Use any static HTTP server rather than opening files directly, because browser ES modules need an HTTP origin. Examples:
