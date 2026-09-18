@@ -147,7 +147,7 @@ Database webhooks transmit booking/customer data to the configured Edge Function
 
 ## OpenStreetMap, Leaflet, and verified route pricing
 
-The booking form loads Leaflet only on `index.html`. Location searches are debounced and run through the authenticated `search-locations` Edge Function, which keeps the openrouteservice key server-side. The openrouteservice public Pelias geocoder is served separately at `https://api.openrouteservice.org/geocode/autocomplete`; customers must choose a result before route calculation begins.
+The booking form loads Leaflet only on `index.html`. Location searches are debounced and run through the authenticated `search-locations` Edge Function, which keeps the openrouteservice key server-side. The openrouteservice public Pelias geocoder is attempted first at `https://api.openrouteservice.org/geocode/autocomplete`. If it rejects the project key, the function falls back to normal, throttled OpenStreetMap Nominatim search with an identifying User-Agent. Customers must choose a result before route calculation begins. The client cache and 650 ms debounce, plus the fallback's 1.1-second per-runtime throttle, avoid bulk or high-volume geocoding requests.
 
 `calculate-route` calls the current openrouteservice HEIGIT Directions endpoint (`https://api.heigit.org/openrouteservice/v2/directions/driving-car/geojson`) to return actual driving distance, duration, and GeoJSON route geometry. Leaflet displays that geometry using normal interactive OpenStreetMap tiles with visible OpenStreetMap attribution. No tiles are bulk-downloaded, prefetched, or used offline.
 
